@@ -13,7 +13,7 @@ import sys
 import rospy
 import moveit_commander
 import geometry_msgs.msg
-from grasp_tools.transformation import get_transform_ros
+from grasp_tools.transformation.get_transformation_ros import get_transform_ros
 from grasp_tools.utils.numpy_msg import numpy_to_ros_pose
 
 
@@ -23,7 +23,7 @@ class ArmEEPoseServer:
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
         self.arm_group_name = rospy.get_param("~arm_group_name")  # "arm_and_wrist" or "arm"
-        self.world_frame = "world"
+        self.world_frame = "taser/base_link"
         self.arm_group = moveit_commander.MoveGroupCommander(self.arm_group_name)
         self.arm_group.set_max_velocity_scaling_factor(0.05)
         self.arm_group.set_goal_tolerance(0.005)
