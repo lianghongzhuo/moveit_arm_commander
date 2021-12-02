@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- arm motion service -->
+    <node pkg="arm_motion_service" type="arm_motion_server.py" name="arm_motion_server_arm" required="true" output="screen">
+        <param name="arm_group_name" value="left_arm"/>
+    </node>
+</launch>

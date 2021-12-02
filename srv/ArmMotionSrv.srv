@@ -1,0 +1,9 @@
+std_msgs/Float64MultiArray abs_pose
+std_msgs/Float64MultiArray delta_pose
+std_msgs/Float64MultiArray joint_position
+std_msgs/String named_position
+std_msgs/String frame_id
+std_msgs/String motion_type
+std_msgs/Bool execute
+---
+bool success
