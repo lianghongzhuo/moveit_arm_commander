@@ -24,9 +24,11 @@ class ArmEEPoseServer:
         self.scene = moveit_commander.PlanningSceneInterface()
         self.arm_group_name = rospy.get_param("~arm_group_name")  # "arm_and_wrist" or "arm"
         self.world_frame = rospy.get_param("~world_frame")
+        self.factor_velocity = rospy.get_param("~max_velocity_scaling_factor")
+        self.factor_acceleration = rospy.get_param("~max_acceleration_scaling_factor")
         self.arm_group = moveit_commander.MoveGroupCommander(self.arm_group_name)
-        self.arm_group.set_max_velocity_scaling_factor("~max_velocity_scaling_factor")
-        self.arm_group.set_max_acceleration_scaling_factor("~max_acceleration_scaling_factor")
+        self.arm_group.set_max_velocity_scaling_factor(self.factor_velocity)
+        self.arm_group.set_max_acceleration_scaling_factor(self.factor_acceleration)
 
         self.arm_group.set_goal_tolerance(0.005)
         self.arm_group.set_planning_time(0.5)
@@ -70,7 +72,10 @@ class ArmEEPoseServer:
             success, plan, plan_time, _ = result
         else:
             plan = result
-            success = True
+            if plan.joint_trajectory.points:
+                success = True
+            else:
+                success = False
         if success:
             rospy.loginfo("planning succeed, execute?")
             if execute:
@@ -143,7 +148,7 @@ class ArmEEPoseServer:
 
 def main():
     rospy.init_node("arm_commander_server", anonymous=True)
-    server = ArmEEPoseServer()
+    ArmEEPoseServer()
     rospy.spin()
 
 
