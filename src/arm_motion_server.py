@@ -121,6 +121,7 @@ class ArmEEPoseServer:
         return succeed
 
     def goto_named_position(self, target_name):
+        input("go to named position [{}]?".format(target_name))
         self.arm_group.set_named_target(target_name)
         success = self.arm_group.go(wait=True)
         return success
