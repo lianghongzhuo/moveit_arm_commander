@@ -23,10 +23,10 @@ class ArmEEPoseServer:
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
         self.arm_group_name = rospy.get_param("~arm_group_name")  # "arm_and_wrist" or "arm"
-        self.world_frame = "taser/base_link"
+        self.world_frame = rospy.get_param("~world_frame")
         self.arm_group = moveit_commander.MoveGroupCommander(self.arm_group_name)
-        self.arm_group.set_max_velocity_scaling_factor(1)
-        self.arm_group.set_max_acceleration_scaling_factor(1)
+        self.arm_group.set_max_velocity_scaling_factor("~max_velocity_scaling_factor")
+        self.arm_group.set_max_acceleration_scaling_factor("~max_acceleration_scaling_factor")
 
         self.arm_group.set_goal_tolerance(0.005)
         self.arm_group.set_planning_time(0.5)
@@ -133,7 +133,7 @@ class ArmEEPoseServer:
             return True
         result = self.arm_group.plan()
         if isinstance(result, tuple):  # moveit master branch (noetic or higher)
-            success, plan, plan_time, _ = result
+            success, plan, _, _ = result
         else:
             plan = result
             success = True
@@ -141,7 +141,11 @@ class ArmEEPoseServer:
         return success
 
 
-if __name__ == "__main__":
+def main():
     rospy.init_node("arm_commander_server", anonymous=True)
     server = ArmEEPoseServer()
     rospy.spin()
+
+
+if __name__ == "__main__":
+    main()

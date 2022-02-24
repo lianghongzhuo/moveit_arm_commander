@@ -1,7 +1,29 @@
 <?xml version="1.0"?>
 <launch>
+    <arg name="robot_name" default="taser"/>
     <!-- arm motion service -->
+    <group if="$(eval arg('robot_name') == 'taser')">
     <node pkg="arm_motion_service" type="arm_motion_server.py" name="arm_motion_service_left_arm" required="true" output="screen">
         <param name="arm_group_name" value="left_arm"/>
+        <param name="world_frame" value="taser/base_link"/>
+        <param name="max_velocity_scaling_factor" value="1"/>
+        <param name="max_acceleration_scaling_factor" value="1"/>
     </node>
+    </group>
+    <group if="$(eval arg('robot_name') == 'kuka')">
+    <node pkg="arm_motion_service" type="arm_motion_server.py" name="arm_motion_service_left_arm" required="true" output="screen">
+        <param name="arm_group_name" value="arm"/>
+        <param name="world_frame" value="world"/>
+        <param name="max_velocity_scaling_factor" value="0.01"/>
+        <param name="max_acceleration_scaling_factor" value="0.01"/>
+    </node>
+    </group>
+    <group if="$(eval arg('robot_name') == 'ur10')">
+    <node pkg="arm_motion_service" type="arm_motion_server.py" name="arm_motion_service_left_arm" required="true" output="screen">
+        <param name="arm_group_name" value="arm"/>
+        <param name="world_frame" value="world"/>
+        <param name="max_velocity_scaling_factor" value="1"/>
+        <param name="max_acceleration_scaling_factor" value="1"/>
+    </node>
+    </group>
 </launch>
