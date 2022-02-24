@@ -65,8 +65,12 @@ class ArmEEPoseServer:
         pose_goal.pose = pose
         pose_goal.header.frame_id = frame_id
         self.arm_group.set_pose_target(pose_goal)
-
-        success, trajectory, _, _ = self.arm_group.plan()
+        result = self.arm_group.plan()
+        if isinstance(result, tuple):  # moveit master branch (noetic or higher)
+            success, plan, plan_time, _ = result
+        else:
+            plan = result
+            success = True
         if success:
             rospy.loginfo("planning succeed, execute?")
             if execute:
@@ -74,7 +78,7 @@ class ArmEEPoseServer:
             else:
                 choice = input("(y/n)\n")
             if choice == "y":
-                self.arm_group.execute(trajectory, wait=True)
+                self.arm_group.execute(plan, wait=True)
                 self.arm_group.stop()
                 self.arm_group.clear_pose_targets()
                 self.arm_group.clear_path_constraints()
