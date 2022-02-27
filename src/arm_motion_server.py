@@ -90,34 +90,27 @@ class ArmEEPoseServer:
         self.arm_group.get_current_state()
         return success
 
-    def cal_cartesian(self, pose_goal):
-        """
-        :param pose_goal:
-        :return:
-        """
-        (plan, fraction) = self.arm_group.compute_cartesian_path(waypoints=[pose_goal], eef_step=0.01,
-                                                                 jump_threshold=1.5, avoid_collisions=True,
-                                                                 path_constraints=None)
-        succeed = self.arm_group.execute(plan, wait=True)
-        return fraction, succeed
-
     def goto_cartesian_pose_goal(self, pose):
         """
         :param pose: 1X7 list or np.array
         :return: bool, weather the motion planning is succeed
         note: cartesian pose planning only work on world coordinate system
         """
+        eef_step = 0.0005  # kuka lwr
+        # eef_step = 0.01 # other arm
         pose_goal = numpy_to_ros_pose(pose)
         rospy.sleep(0.01)
         fraction = 0
         trial_time = 0
-        succeed = False
         while fraction < 0.8:
-            fraction, succeed = self.cal_cartesian(pose_goal)
+            (plan, fraction) = self.arm_group.compute_cartesian_path(waypoints=[pose_goal], eef_step=0.0005,
+                                                            jump_threshold=1.5, avoid_collisions=True,
+                                                            path_constraints=None)
             trial_time += 1
             rospy.logwarn("planing a cartesian path, fraction {}, trail time {}".format(fraction, trial_time))
             if trial_time > 10:
-                return True
+                return False
+        succeed = self.arm_group.execute(plan, wait=True)
         return succeed
 
     def goto_named_position(self, target_name):
