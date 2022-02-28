@@ -102,22 +102,29 @@ class ArmEEPoseServer:
         rospy.sleep(0.01)
         fraction = 0
         trial_time = 0
-        while fraction < 0.8:
-            (plan, fraction) = self.arm_group.compute_cartesian_path(waypoints=[pose_goal], eef_step=0.0005,
-                                                            jump_threshold=1.5, avoid_collisions=True,
-                                                            path_constraints=None)
+        allowed_fraction = 0.7
+        while fraction < allowed_fraction:
+            (plan, fraction) = self.arm_group.compute_cartesian_path(waypoints=[pose_goal], eef_step=eef_step,
+                                                                     jump_threshold=1.5, avoid_collisions=True,
+                                                                     path_constraints=None)
             trial_time += 1
             rospy.logwarn("planing a cartesian path, fraction {}, trail time {}".format(fraction, trial_time))
-            if trial_time > 10:
+            if trial_time > 9:
                 return False
         succeed = self.arm_group.execute(plan, wait=True)
         return succeed
 
     def goto_named_position(self, target_name):
-        input("go to named position [{}]?".format(target_name))
-        self.arm_group.set_named_target(target_name)
-        success = self.arm_group.go(wait=True)
-        return success
+        choice = input("go to named position [{}]? (y/n)\n".format(target_name))
+        while True:
+            if choice == "y":
+                self.arm_group.set_named_target(target_name)
+                success = self.arm_group.go(wait=True)
+                return success
+            elif choice == "n":
+                return False
+            else:
+                rospy.logwarn("Please choose y or n")
 
     def goto_joint_position(self, joints):
         if len(joints) != len(self.arm_group.get_active_joints()):
