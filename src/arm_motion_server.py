@@ -30,7 +30,7 @@ class ArmEEPoseServer:
         self.arm_group.set_max_velocity_scaling_factor(self.factor_velocity)
         self.arm_group.set_max_acceleration_scaling_factor(self.factor_acceleration)
 
-        self.arm_group.set_goal_tolerance(0.005)
+        self.arm_group.set_goal_tolerance(0.001)
         self.arm_group.set_planning_time(0.5)
         self.eef_link = self.arm_group.get_end_effector_link()
         rospy.Service("arm_motion_service_{}".format(self.arm_group_name), ArmMotionSrv, self.arm_service_callback)
