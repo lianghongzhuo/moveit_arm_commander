@@ -22,7 +22,7 @@ class ArmEEPoseServer:
         moveit_commander.roscpp_initialize(sys.argv)
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
-        self.arm_group_name = rospy.get_param("~arm_group_name")  # "arm_and_wrist" or "arm"
+        self.arm_group_name = rospy.get_param("~arm_group_name")
         self.world_frame = rospy.get_param("~world_frame")
         self.factor_velocity = rospy.get_param("~max_velocity_scaling_factor")
         self.factor_acceleration = rospy.get_param("~max_acceleration_scaling_factor")
@@ -96,8 +96,7 @@ class ArmEEPoseServer:
         :return: bool, weather the motion planning is succeed
         note: cartesian pose planning only work on world coordinate system
         """
-        eef_step = 0.0005  # kuka lwr
-        # eef_step = 0.01 # other arm
+        eef_step = 0.0005
         pose_goal = numpy_to_ros_pose(pose)
         rospy.sleep(0.01)
         fraction = 0
