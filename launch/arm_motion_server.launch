@@ -26,8 +26,8 @@
           name="arm_motion_service_$(arg robot_name)_$(arg arm_group_name)" required="true" output="screen">
         <param name="arm_group_name" value="$(arg arm_group_name)"/>
         <param name="world_frame" value="world"/>
-        <param name="max_velocity_scaling_factor" value="1"/>
-        <param name="max_acceleration_scaling_factor" value="1"/>
+        <param name="max_velocity_scaling_factor" value="0.1"/>
+        <param name="max_acceleration_scaling_factor" value="0.1"/>
     </node>
     </group>
 </launch>
