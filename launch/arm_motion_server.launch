@@ -14,11 +14,11 @@
     </group>
     <group if="$(eval arg('robot_name') == 'kuka')">
     <node pkg="arm_motion_service" type="arm_motion_server.py"
-          name="arm_motion_service_$(arg robot_name)_$(arg arm_group_name)" required="true" output="screen">
-        <param name="arm_group_name" value="$(arg arm_group_name)"/>
+          name="arm_motion_service_$(arg robot_name)_arm" required="true" output="screen">
+        <param name="arm_group_name" value="arm"/>
         <param name="world_frame" value="world"/>
-        <param name="max_velocity_scaling_factor" value="0.1"/>
-        <param name="max_acceleration_scaling_factor" value="0.1"/>
+        <param name="max_velocity_scaling_factor" value="0.2"/>
+        <param name="max_acceleration_scaling_factor" value="0.2"/>
     </node>
     </group>
     <group if="$(eval arg('robot_name') == 'ur10e')">
