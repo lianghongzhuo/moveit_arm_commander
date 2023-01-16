@@ -1,31 +1,53 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Author     : Hongzhuo Liang 
+# Author     : Hongzhuo Liang
 # E-mail     : liang@informatik.uni-hamburg.de
-# Description: 
+# Description:
 # Date       : 19/03/2021: 12:04
-# File Name  : arm_motion_server
-from __future__ import print_function
-from arm_motion_service.srv import ArmMotionSrv, ArmMotionSrvResponse
+# File Name  : MoveitArmCommander
 import numpy as np
-from six.moves import input
 import sys
 import rospy
 import moveit_commander
 import geometry_msgs.msg
-from grasp_tools.transformation.get_transformation_ros import get_transform_ros
-from grasp_tools.utils.numpy_msg import numpy_to_ros_pose
+from moveit_commander.conversions import list_to_pose, transform_to_list
+import rospy
+import tf2_ros
 
 
-class ArmEEPoseServer:
-    def __init__(self):
+def get_transform_ros(parent_frame, child_frame, return_type):
+    """
+    :param parent_frame
+    :param child_frame
+    :param return_type can be list or ros_msg
+    :return geometry_msgs.msg.TransformStamped
+    """
+    tf_buffer = tf2_ros.Buffer()
+    tf2_ros.TransformListener(tf_buffer)
+    try:
+        trans = tf_buffer.lookup_transform(parent_frame, child_frame, time=rospy.Time(0), timeout=rospy.Duration(5))
+        rospy.loginfo("got transform complete")
+        if return_type == "list":
+            return transform_to_list(trans)
+        elif return_type == "ros_msg":
+            return trans
+        else:
+            raise NotImplementedError("return type should be list or ros_msg")
+    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        rospy.logwarn_throttle(10, "waiting for transform from {} to {}".format(parent_frame, child_frame))
+        rospy.sleep(0.5)
+        raise Exception("got transform failed")
+
+
+class MoveitArmCommander:
+    def __init__(self, arm_group_name, world_frame, max_velocity_scaling_factor, max_acceleration_scaling_factor):
         moveit_commander.roscpp_initialize(sys.argv)
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
-        self.arm_group_name = rospy.get_param("~arm_group_name")
-        self.world_frame = rospy.get_param("~world_frame")
-        self.factor_velocity = rospy.get_param("~max_velocity_scaling_factor")
-        self.factor_acceleration = rospy.get_param("~max_acceleration_scaling_factor")
+        self.arm_group_name = arm_group_name
+        self.world_frame = world_frame
+        self.factor_velocity = max_velocity_scaling_factor
+        self.factor_acceleration = max_acceleration_scaling_factor
         self.arm_group = moveit_commander.MoveGroupCommander(self.arm_group_name)
         self.arm_group.set_max_velocity_scaling_factor(self.factor_velocity)
         self.arm_group.set_max_acceleration_scaling_factor(self.factor_acceleration)
@@ -33,27 +55,6 @@ class ArmEEPoseServer:
         self.arm_group.set_goal_tolerance(0.001)
         self.arm_group.set_planning_time(0.5)
         self.eef_link = self.arm_group.get_end_effector_link()
-        rospy.Service("arm_motion_service_{}".format(self.arm_group_name), ArmMotionSrv, self.arm_service_callback)
-        rospy.loginfo("arm_motion_service has started, waiting for service call from other code...")
-
-    def arm_service_callback(self, msg):
-        if msg.motion_type.data == "delta_pose":
-            delta_pose = np.array(msg.delta_pose.data)
-            pose = get_transform_ros(self.world_frame, self.eef_link, return_type="numpy")
-            pose += delta_pose
-            rospy.loginfo("got new pose {}".format(delta_pose))
-            success = self.goto_cartesian_pose_goal(pose)
-            return ArmMotionSrvResponse(success)
-        elif msg.motion_type.data == "abs_pose":
-            pose = np.array(msg.abs_pose.data)
-            success = self.goto_pose_goal(pose, msg.frame_id.data, msg.execute.data)
-            return ArmMotionSrvResponse(success)
-        elif msg.motion_type.data == "named_position":
-            success = self.goto_named_position(target_name=msg.named_position.data)
-            return ArmMotionSrvResponse(success)
-        elif msg.motion_type.data == "joint_position":
-            success = self.goto_joint_position(msg.joint_position.data)
-            return ArmMotionSrvResponse(success)
 
     def goto_pose_goal(self, pose, frame_id, execute):
         """
@@ -63,19 +64,12 @@ class ArmEEPoseServer:
         :return: bool, weather the motion planning is succeed
         """
         pose_goal = geometry_msgs.msg.PoseStamped()
-        pose = numpy_to_ros_pose(pose)
+        pose = list_to_pose(pose)
         pose_goal.pose = pose
         pose_goal.header.frame_id = frame_id
         self.arm_group.set_pose_target(pose_goal)
         result = self.arm_group.plan()
-        if isinstance(result, tuple):  # moveit master branch (noetic or higher)
-            success, plan, plan_time, _ = result
-        else:
-            plan = result
-            if plan.joint_trajectory.points:
-                success = True
-            else:
-                success = False
+        success, plan, plan_time, _ = result
         if success:
             rospy.loginfo("planning succeed, execute?")
             if execute:
@@ -90,14 +84,20 @@ class ArmEEPoseServer:
         self.arm_group.get_current_state()
         return success
 
-    def goto_cartesian_pose_goal(self, pose):
+    def goto_delta_pose_goal(self, delta_pose):
+        pose = get_transform_ros(self.world_frame, self.eef_link, return_type="list")
+        pose += delta_pose
+        rospy.loginfo("got new pose {}".format(delta_pose))
+        success = self.goto_cartesian_pose_goal(pose)
+        return success
+
+    def goto_cartesian_pose_goal(self, pose, eef_step=0.0005):
         """
         :param pose: 1X7 list or np.array
         :return: bool, weather the motion planning is succeed
         note: cartesian pose planning only work on world coordinate system
         """
-        eef_step = 0.0005
-        pose_goal = numpy_to_ros_pose(pose)
+        pose_goal = list_to_pose(pose)
         rospy.sleep(0.01)
         fraction = 0
         trial_time = 0
@@ -113,8 +113,11 @@ class ArmEEPoseServer:
         succeed = self.arm_group.execute(plan, wait=True)
         return succeed
 
-    def goto_named_position(self, target_name):
-        choice = input("go to named position [{}]? (y/n)\n".format(target_name))
+    def goto_named_position(self, target_name, wait=True):
+        if wait:
+            choice = input("go to named position [{}]? (y/n)\n".format(target_name))
+        else:
+            choice = "y"
         while True:
             if choice == "y":
                 self.arm_group.set_named_target(target_name)
@@ -144,13 +147,3 @@ class ArmEEPoseServer:
             success = True
         self.arm_group.execute(plan)
         return success
-
-
-def main():
-    rospy.init_node("arm_commander_server", anonymous=True)
-    ArmEEPoseServer()
-    rospy.spin()
-
-
-if __name__ == "__main__":
-    main()
