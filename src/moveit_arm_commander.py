@@ -40,7 +40,8 @@ def get_transform_ros(parent_frame, child_frame, return_type):
 
 
 class MoveitArmCommander:
-    def __init__(self, arm_group_name, world_frame, max_velocity_scaling_factor, max_acceleration_scaling_factor):
+    def __init__(self, arm_group_name, world_frame, max_velocity_scaling_factor, max_acceleration_scaling_factor,
+                 goal_tolerance):
         moveit_commander.roscpp_initialize(sys.argv)
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
@@ -52,7 +53,7 @@ class MoveitArmCommander:
         self.arm_group.set_max_velocity_scaling_factor(self.factor_velocity)
         self.arm_group.set_max_acceleration_scaling_factor(self.factor_acceleration)
 
-        self.arm_group.set_goal_tolerance(0.001)
+        self.arm_group.set_goal_tolerance(goal_tolerance)
         self.arm_group.set_planning_time(0.5)
         self.eef_link = self.arm_group.get_end_effector_link()
 
