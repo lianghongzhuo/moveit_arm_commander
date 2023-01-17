@@ -15,11 +15,10 @@ import rospy
 import tf2_ros
 
 
-def get_transform_ros(parent_frame, child_frame, return_type):
+def get_transform_ros(parent_frame, child_frame):
     """
     :param parent_frame
     :param child_frame
-    :param return_type can be list or ros_msg
     :return geometry_msgs.msg.TransformStamped
     """
     tf_buffer = tf2_ros.Buffer()
@@ -27,12 +26,7 @@ def get_transform_ros(parent_frame, child_frame, return_type):
     try:
         trans = tf_buffer.lookup_transform(parent_frame, child_frame, time=rospy.Time(0), timeout=rospy.Duration(5))
         rospy.loginfo("got transform complete")
-        if return_type == "list":
-            return transform_to_list(trans)
-        elif return_type == "ros_msg":
-            return trans
-        else:
-            raise NotImplementedError("return type should be list or ros_msg")
+        return trans
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
         rospy.logwarn_throttle(10, "waiting for transform from {} to {}".format(parent_frame, child_frame))
         rospy.sleep(0.5)
@@ -86,8 +80,8 @@ class MoveitArmCommander:
         return success
 
     def goto_delta_pose_goal(self, delta_pose):
-        pose = get_transform_ros(self.world_frame, self.eef_link, return_type="list")
-        pose += delta_pose
+        trans = get_transform_ros(self.world_frame, self.eef_link)
+        pose = np.array(transform_to_list(trans.transform)) + delta_pose
         rospy.loginfo("got new pose {}".format(delta_pose))
         success = self.goto_cartesian_pose_goal(pose)
         return success
