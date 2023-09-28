@@ -123,7 +123,7 @@ class MoveitArmCommander:
             else:
                 rospy.logwarn("Please choose y or n")
 
-    def goto_joint_position(self, joints):
+    def goto_joint_position(self, joints, force_execute):
         if len(joints) != len(self.arm_group.get_active_joints()):
             rospy.logerr("wrong input joint num {} for goto_joint_position, require {} joints, got {} joints".
                          format(joints, len(self.arm_group.get_active_joints()), len(joints)))
@@ -131,7 +131,7 @@ class MoveitArmCommander:
         else:
             self.arm_group.set_joint_value_target(joints)
         current = np.array(self.arm_group.get_current_joint_values())
-        if np.sum(np.abs(current - np.array(joints))) < 0.05:
+        if np.sum(np.abs(current - np.array(joints))) < 0.05 and not force_execute:
             rospy.loginfo("error is less than 0.05, return without moving")
             return True
         result = self.arm_group.plan()
